@@ -1,12 +1,14 @@
 -- run with psql -U postgres -d foodie -a -f migrations/20230905-create_tables.sql
 
 -- Create the "recipes" table
+DROP TABLE IF EXISTS recipes;
 CREATE TABLE recipes (
     recipe_id serial PRIMARY KEY,
     name text,
     instructions text,
     created_at date,
-    updated_at date
+    updated_at date,
+    deleted_at date
 );
 
 -- Insert sample data

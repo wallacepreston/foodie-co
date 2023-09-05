@@ -1,10 +1,11 @@
 package main
 	
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
 	"encoding/json"
+	"log"
+	"foodie-co/database"
 	_ "github.com/lib/pq"
 )
 
@@ -17,54 +18,31 @@ type Recipe struct {
 }
 
 func main() {
-
 	// Database connection setup
-	db, err := sql.Open("postgres", "user=postgres dbname=foodie sslmode=disable")
+	dsn := "user=postgres dbname=foodie sslmode=disable"
+	db, err := database.InitDatabase(dsn)
 	if err != nil {
-			panic(err)
+			log.Fatal(err)
 	}
-	defer db.Close()
-	
-	// Check the connection
-	var version string
-	err = db.QueryRow("SELECT version()").Scan(&version)
-	if err != nil {
-			panic(err)
-	}
-	fmt.Println("PostgreSQL version:", version)
+	// log out db
+	fmt.Println(db)
 
 	// Server setup
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "Hello, World!")
 	})
 	http.HandleFunc("/recipes", func(w http.ResponseWriter, r *http.Request) {
-		// Query the database for all recipes
-		rows, err := db.Query("SELECT * FROM recipes")
-		if err != nil {
-				panic(err)
-		}
-    defer rows.Close()
+    var recipes []database.Recipe // Use the Recipe struct from the database package
 
-    // Create a slice to store the results
-    var recipes []Recipe
-
-    // Iterate over the rows and scan into Recipe structs
-    for rows.Next() {
-			var recipe Recipe
-			err := rows.Scan(&recipe.ID, &recipe.Name, &recipe.Instructions, &recipe.CreatedAt, &recipe.UpdatedAt)
-			if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-			}
-			recipes = append(recipes, recipe)
-    }
+    // Query the "recipes" table using GORM
+    database.DB.Find(&recipes)
 
     // Convert the results to JSON and send the response
     w.Header().Set("Content-Type", "application/json")
-    err = json.NewEncoder(w).Encode(recipes)
+    err := json.NewEncoder(w).Encode(recipes)
     if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
     }
 	})
 

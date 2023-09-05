@@ -19,7 +19,7 @@ type Recipe struct {
 }
 
 func main() {
-	// Database connection setup
+	// Database connection
 	dsn := "user=postgres dbname=foodie sslmode=disable"
 	db, err := database.InitDatabase(dsn)
 	if err != nil {
@@ -28,12 +28,16 @@ func main() {
 	// log out db
 	fmt.Println(db)
 
-	// Server setup
+	// Server
+
+	// GET /
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hello, World!")
 	})
+
+	// GET /recipes
 	http.HandleFunc("/recipes", func(w http.ResponseWriter, r *http.Request) {
-		var recipes []database.Recipe // Use the Recipe struct from the database package
+		var recipes []database.Recipe
 
 		// Query the "recipes" table using GORM
 		database.DB.Find(&recipes)

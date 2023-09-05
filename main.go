@@ -1,11 +1,20 @@
 package main
 	
 import (
-		"database/sql"
-		"fmt"
-		"net/http"
+	"database/sql"
+	"fmt"
+	"net/http"
+	"encoding/json"
 	_ "github.com/lib/pq"
 )
+
+type Recipe struct {
+	ID          int    `json:"recipe_id"`
+	Name        string `json:"name"`
+	Instructions string `json:"instructions"`
+	CreatedAt   string `json:"created_at"`
+	UpdatedAt   string `json:"updated_at"`
+}
 
 func main() {
 
@@ -29,7 +38,34 @@ func main() {
 			fmt.Fprintf(w, "Hello, World!")
 	})
 	http.HandleFunc("/recipes", func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintf(w, "Here are the recipes")
+		// Query the database for all recipes
+		rows, err := db.Query("SELECT * FROM recipes")
+		if err != nil {
+				panic(err)
+		}
+    defer rows.Close()
+
+    // Create a slice to store the results
+    var recipes []Recipe
+
+    // Iterate over the rows and scan into Recipe structs
+    for rows.Next() {
+			var recipe Recipe
+			err := rows.Scan(&recipe.ID, &recipe.Name, &recipe.Instructions, &recipe.CreatedAt, &recipe.UpdatedAt)
+			if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+			}
+			recipes = append(recipes, recipe)
+    }
+
+    // Convert the results to JSON and send the response
+    w.Header().Set("Content-Type", "application/json")
+    err = json.NewEncoder(w).Encode(recipes)
+    if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+    }
 	})
 
 	// Start the server
